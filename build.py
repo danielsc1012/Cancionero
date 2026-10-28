@@ -9,6 +9,7 @@ El historial de domingos se guarda en data/history.json para que cada corrida
 solo consulte los domingos nuevos.
 """
 import base64, json, os, re, sys, time, urllib.error, urllib.request
+from lyric_type import analyze
 from datetime import date, datetime, timedelta, timezone
 
 API = "https://api.planningcenteronline.com/services/v2"
@@ -154,7 +155,9 @@ def load_songs():
                 v = bpms[0]
                 speeds.add("Lento" if v <= 85 else "Mediano" if v < 120 else "Rápido")
                 est = True
+        lt, grp = analyze(lyr, s["t"])
         out.append({
+            "lt": lt, "grp": grp,
             "id": sid, "t": s["t"], "tags": tags, "b": parse_bases(s["notes"]),
             "tempo": sorted(speeds), "est": est, "arrs": arrs, "keys": keys, "allKeys": all_keys,
             "multiArr": len({k["a"] for k in keys}) > 1, "lyr": lyr,

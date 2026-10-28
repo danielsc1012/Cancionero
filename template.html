@@ -15,16 +15,16 @@
   --orange:#c4491d; --orange-soft:#fdefea; --mark:#fdefb0; --mark-ink:#1c1e1e;
   --display:"League Spartan","Helvetica Neue",Arial,sans-serif;
   --body-font:"Montserrat","Helvetica Neue",Arial,sans-serif;
-  --logo:#000000; --bar:#1c1e1e; --on-bar:#ffffff;
+  --logo:#000000; --bar:#1c1e1e; --on-bar:#ffffff; --lt-o:#00696b; --lt-s:#f15d2c; --lt-r:#08a1ec;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#141616; --surface:#1c1e1e; --fg:#f0f2f2; --body:#c9cdcd; --muted:#9a9d9d; --line:#2f3333;
   --teal:#00babc; --teal-ink:#5fd6d7; --teal-soft:#0f3233; --on-teal:#062b2b;
-  --orange:#f68a62; --orange-soft:#3a2018; --mark:#5a4a12; --mark-ink:#f0f2f2; --logo:#ffffff; --bar:#00696b; --on-bar:#ffffff; color-scheme:dark}}
+  --orange:#f68a62; --orange-soft:#3a2018; --mark:#5a4a12; --mark-ink:#f0f2f2; --logo:#ffffff; --bar:#00696b; --on-bar:#ffffff; --lt-o:#4fd0d1; --lt-s:#f68a62; --lt-r:#5cbef3; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#141616; --surface:#1c1e1e; --fg:#f0f2f2; --body:#c9cdcd; --muted:#9a9d9d; --line:#2f3333;
   --teal:#00babc; --teal-ink:#5fd6d7; --teal-soft:#0f3233; --on-teal:#062b2b;
-  --orange:#f68a62; --orange-soft:#3a2018; --mark:#5a4a12; --mark-ink:#f0f2f2; --logo:#ffffff; --bar:#00696b; --on-bar:#ffffff; color-scheme:dark}
+  --orange:#f68a62; --orange-soft:#3a2018; --mark:#5a4a12; --mark-ink:#f0f2f2; --logo:#ffffff; --bar:#00696b; --on-bar:#ffffff; --lt-o:#4fd0d1; --lt-s:#f68a62; --lt-r:#5cbef3; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--body-font);font-size:15px;line-height:1.5;margin:0}
 .wrap{max-width:960px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 110px}
@@ -87,6 +87,16 @@ details.song>summary::-webkit-details-marker{display:none}
 .pending{font-size:13px;color:var(--orange);margin:0}
 .arrs{font-size:13px;color:var(--body);margin:0;padding-left:16px}
 .empty{padding:40px 0;color:var(--muted);text-align:center}
+.lt{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+.ltbar{display:flex;width:150px;height:8px;border-radius:4px;overflow:hidden;background:var(--line);gap:1px}
+.ltbar i{display:block;height:100%}
+.c-o{background:var(--lt-o)}.c-s{background:var(--lt-s)}.c-r{background:var(--lt-r)}
+.ltk{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.ltk i{display:inline-block;width:8px;height:8px;border-radius:2px}
+.grp{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:4px;border:1px dashed var(--teal-ink);color:var(--teal-ink);white-space:nowrap}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.togglechip{font:inherit;font-size:13px;font-weight:500;padding:8px 12px;border:1px dashed var(--teal-ink);border-radius:6px;background:var(--surface);color:var(--teal-ink);cursor:pointer}
+.togglechip[aria-pressed="true"]{background:var(--teal);border-style:solid;border-color:var(--teal);color:var(--on-teal)}
 footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
 /* Mi set */
 .setbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--bar);color:var(--on-bar);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
@@ -110,6 +120,10 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
 #copyMsg{font-size:12.5px;color:var(--teal-ink)}
 #copyFallback{width:100%;min-height:120px;font:inherit;font-size:13px;margin-top:8px}
 @media (max-width:560px){
+  .lt,.ltk,.grp{font-size:13px}
+  .ltbar{width:180px;height:10px}
+  .togglechip{font-size:15px;padding:10px 14px}
+  .legend{font-size:13.5px}
   body{font-size:16px}
   .lede{font-size:15px}
   #q,select{font-size:16px}
@@ -173,6 +187,16 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
         <button type="button" data-v="Lento" aria-pressed="false">Lento</button>
       </div>
     </div>
+    <div class="row">
+      <div class="seg" role="group" aria-label="Tipo de letra" id="ltype">
+        <button type="button" data-v="" aria-pressed="true">Toda letra</button>
+        <button type="button" data-v="0" aria-pressed="false">Objetiva</button>
+        <button type="button" data-v="1" aria-pressed="false">Subjetiva</button>
+        <button type="button" data-v="2" aria-pressed="false">Reflexiva</button>
+      </div>
+      <button type="button" class="togglechip" id="grpBtn" aria-pressed="false">Solo canciones grupales</button>
+    </div>
+    <div class="legend"><span class="ltk"><i class="c-o"></i>Objetiva: el carácter de Dios y sus obras</span><span class="ltk"><i class="c-s"></i>Subjetiva: mi situación y mis decisiones</span><span class="ltk"><i class="c-r"></i>Reflexiva: lo que estamos haciendo al adorar</span></div>
     <div class="chips" id="chips" role="group" aria-label="Temas (se combinan)"></div>
     <div class="meta-row"><span id="count"></span><button id="clear" class="linkbtn" type="button" hidden>Quitar filtros</button></div>
   </div>
@@ -210,7 +234,7 @@ DATA.forEach((s,i) => { s.i=i; s._hay = norm(s.t + " " + s.lyr); s._last = s.las
 const byId = Object.fromEntries(DATA.map(s=>[s.id,s]));
 
 const store = { get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
-const state = { q:"", tempo:"", themes:new Set(), sort: store.get("nw-sort","az") };
+const state = { q:"", tempo:"", lt:"", grp:false, themes:new Set(), sort: store.get("nw-sort","az") };
 let set = store.get("nw-set",[]).filter(x=>byId[x.id]);
 
 const chips = document.getElementById("chips");
@@ -223,10 +247,20 @@ ALLTAGS.forEach(k=>{
   chips.append(b);
 });
 document.querySelectorAll("#tempo button").forEach(b=>b.addEventListener("click",()=>{state.tempo=b.dataset.v;render();}));
+document.querySelectorAll("#ltype button").forEach(b=>b.addEventListener("click",()=>{state.lt=b.dataset.v;render();}));
+document.getElementById("grpBtn").addEventListener("click",()=>{state.grp=!state.grp;render();});
+const LTN=["Objetiva","Subjetiva","Reflexiva"];
+const dom = s => s.lt ? s.lt.indexOf(Math.max(...s.lt)) : -1;
+function ltBar(s){
+  if(!s.lt) return `<div class="lt">Tipo de letra: sin datos suficientes${s.grp?` <span class="grp">Grupal</span>`:""}</div>`;
+  const [o,su,r]=s.lt;
+  return `<div class="lt" title="Objetiva ${o}% · Subjetiva ${su}% · Reflexiva ${r}%"><span class="ltbar" role="img" aria-label="Letra: ${o}% objetiva, ${su}% subjetiva, ${r}% reflexiva"><i class="c-o" style="width:${o}%"></i><i class="c-s" style="width:${su}%"></i><i class="c-r" style="width:${r}%"></i></span><span>Obj ${o}% · Subj ${su}% · Refl ${r}%</span>${s.grp?`<span class="grp">Grupal</span>`:""}</div>`;
+}
+
 const q = document.getElementById("q"); q.addEventListener("input",()=>{state.q=q.value;render();});
 const sortSel = document.getElementById("sort"); sortSel.value = state.sort;
 sortSel.addEventListener("change",()=>{state.sort=sortSel.value; store.set("nw-sort",state.sort); render();});
-document.getElementById("clear").addEventListener("click",()=>{state.q="";q.value="";state.tempo="";state.themes.clear();render();});
+document.getElementById("clear").addEventListener("click",()=>{state.q="";q.value="";state.tempo="";state.themes.clear();state.lt="";state.grp=false;render();});
 
 function highlight(text, term){
   const safe = esc(text);
@@ -248,6 +282,7 @@ function card(s, term){
   return `<details class="song"${open}><summary>
     <div><div class="title-row"><p class="t">${esc(s.t)}</p><button type="button" class="add" data-id="${s.id}" aria-pressed="${on}">${on?"En el set ✓":"+ Al set"}</button></div>
       <div class="tags">${tempo}${s.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>
+      ${ltBar(s)}
       <ul class="bases">${s.b.map(([r,c])=>`<li><b>${esc(r)}</b> — <span>${esc(c)}</span></li>`).join("")}</ul></div>
     <div class="dates"><b>Últimos domingos</b>${last}</div>
   </summary>
@@ -259,9 +294,13 @@ function card(s, term){
 function render(){
   const term = norm(state.q.trim());
   document.querySelectorAll("#tempo button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.v===state.tempo)));
+  document.querySelectorAll("#ltype button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.v===state.lt)));
+  document.getElementById("grpBtn").setAttribute("aria-pressed", String(state.grp));
   chips.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed", String(state.themes.has(c.dataset.k))));
   let rows = DATA.filter(s=>{
     if(state.tempo && !s.tempo.includes(state.tempo)) return false;
+    if(state.lt!=="" && dom(s)!==+state.lt) return false;
+    if(state.grp && !s.grp) return false;
     for(const t of state.themes) if(!s.tags.includes(t)) return false;
     return !term || s._hay.includes(term);
   });
@@ -269,7 +308,7 @@ function render(){
   if(state.sort==="new") rows.sort((a,b)=>b._last.localeCompare(a._last));
   if(state.sort==="old") rows.sort((a,b)=>a._last.localeCompare(b._last));
   document.getElementById("count").textContent = `${rows.length} de ${DATA.length} canciones`;
-  document.getElementById("clear").hidden = !(state.q||state.tempo||state.themes.size);
+  document.getElementById("clear").hidden = !(state.q||state.tempo||state.themes.size||state.lt||state.grp);
   document.getElementById("list").innerHTML = rows.length ? rows.map(s=>card(s,term)).join("") : `<div class="empty">Ninguna canción cumple todos los filtros. Quita un tema o cambia el tempo.</div>`;
 }
 document.getElementById("list").addEventListener("click", e=>{
