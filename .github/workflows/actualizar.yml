@@ -1,0 +1,39 @@
+name: Actualizar cancionero
+
+on:
+  schedule:
+    - cron: "17 10 * * 1"   # lunes 6:17 am (hora del Este en verano; 5:17 am en invierno)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cancionero
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Leer Planning Center y generar index.html
+        env:
+          PCO_APP_ID: ${{ secrets.PCO_APP_ID }}
+          PCO_SECRET: ${{ secrets.PCO_SECRET }}
+        run: python build.py
+      - name: Guardar cambios
+        run: |
+          git config user.name "cancionero-bot"
+          git config user.email "cancionero-bot@users.noreply.github.com"
+          git add index.html data/history.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios esta semana."
+          else
+            git commit -m "Actualización semanal desde Planning Center"
+            git push
+          fi
