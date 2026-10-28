@@ -61,12 +61,23 @@ CH = re.compile(r"^\(?[A-G][#b]?(m|maj|min|sus|dim|aug|add|M)?[0-9]*(\([^)]*\))?
 SECTION = re.compile(r"^(intro|verso|verse|coro|chorus|pre|puente|bridge|tag|outro|interlud|instrumental|final|ending|turn|solo|vamp|melod|notas|acordes|corte|cresc|band|piano|drums)", re.I)
 
 
+def strip_chordpro(s):
+    """Quita acordes en formato ChordPro ([A], [Bb2/D]) y corchetes sueltos."""
+    s = re.sub(r"\[[^\]]*\]", "", s)  # acordes completos [A]
+    s = re.sub(r"\[[A-G][#b]?(?:maj|min|sus|dim|aug|add|m)?\d*(?:/[A-G][#b]?)?", "", s)  # [Bb2 sin cerrar
+    s = s.replace("[", "").replace("]", "")
+    return re.sub(r"\s{2,}", " ", s).strip()
+
+
 def clean_lyrics(txt):
     txt = re.sub(r"<[^>]+>", "", txt or "").replace("{{", "").replace("}}", "")
     out, seen = [], set()
     for line in txt.splitlines():
         s = line.strip()
-        if not s or re.search(r"COLUMN_BREAK|PAGE_BREAK|REDEFINE KEY|TRANSPOSE KEY|^\{", s):
+        if s.startswith("{"):
+            continue  # directivas ChordPro: {title: ...}, {c: ...}
+        s = strip_chordpro(s)
+        if not s or re.search(r"COLUMN_BREAK|PAGE_BREAK|REDEFINE KEY|TRANSPOSE KEY", s):
             continue
         toks = [t for t in re.split(r"[\s|,]+", s) if t]
         if toks and sum(1 for t in toks if CH.match(t) or re.match(r"^(x\d+|\d+x|\d+|[-/*()]+|N\.?C\.?|N/C|M:|BASS|BAJO|MELOD[IÍ]A:?|NOTAS:?|ACORDES:?)$", t, re.I)) >= len(toks) * 0.6:
