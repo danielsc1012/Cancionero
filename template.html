@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cancionero Northwood</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@600;700&family=Montserrat:wght@400;500;600&display=swap">
+<style>
+/* Layout: encabezado con logo → filtros (fijos en escritorio) → lista de canciones expandibles → barra inferior "Mi set" con panel */
+:root{
+  --bg:#f5f6f6; --surface:#ffffff; --fg:#1c1e1e; --body:#4a4d4d; --muted:#6e7272; --line:#dcdede;
+  --teal:#00babc; --teal-ink:#00696b; --teal-soft:#e6f8f8; --on-teal:#062b2b;
+  --orange:#c4491d; --orange-soft:#fdefea; --mark:#fdefb0; --mark-ink:#1c1e1e;
+  --display:"League Spartan","Helvetica Neue",Arial,sans-serif;
+  --body-font:"Montserrat","Helvetica Neue",Arial,sans-serif;
+  --logo:#000000; --bar:#1c1e1e; --on-bar:#ffffff;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141616; --surface:#1c1e1e; --fg:#f0f2f2; --body:#c9cdcd; --muted:#9a9d9d; --line:#2f3333;
+  --teal:#00babc; --teal-ink:#5fd6d7; --teal-soft:#0f3233; --on-teal:#062b2b;
+  --orange:#f68a62; --orange-soft:#3a2018; --mark:#5a4a12; --mark-ink:#f0f2f2; --logo:#ffffff; --bar:#00696b; --on-bar:#ffffff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141616; --surface:#1c1e1e; --fg:#f0f2f2; --body:#c9cdcd; --muted:#9a9d9d; --line:#2f3333;
+  --teal:#00babc; --teal-ink:#5fd6d7; --teal-soft:#0f3233; --on-teal:#062b2b;
+  --orange:#f68a62; --orange-soft:#3a2018; --mark:#5a4a12; --mark-ink:#f0f2f2; --logo:#ffffff; --bar:#00696b; --on-bar:#ffffff; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body-font);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:960px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 110px}
+.top{height:6px;background:var(--teal);margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px)))}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding-block:22px 16px}
+header svg{height:30px;width:auto;flex:none}
+header svg g{fill:var(--logo)}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-ink);font-weight:600}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,6vw,42px);line-height:1;margin:6px 0 0;letter-spacing:-.01em;text-wrap:balance}
+.lede{color:var(--body);margin:8px 0 0;max-width:62ch;font-size:14px}
+.filters{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+@media (max-width:640px){.filters{position:static}}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#q{flex:1 1 240px;min-width:0;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
+#q:focus,select:focus{outline:2px solid var(--teal);outline-offset:1px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{font:inherit;font-size:13px;font-weight:500;padding:8px 12px;border:0;background:none;color:var(--fg);cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--teal);color:var(--on-teal)}
+select{font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);max-width:100%}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12.5px;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.chip.occ{border-style:dashed}
+button:focus-visible{outline:2px solid var(--teal-ink);outline-offset:1px}
+.meta-row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.linkbtn{font:inherit;font-size:12.5px;background:none;border:0;color:var(--teal-ink);cursor:pointer;text-decoration:underline;padding:0}
+.list{display:flex;flex-direction:column}
+details.song{border-bottom:1px solid var(--line)}
+details.song>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;padding:14px 0}
+details.song>summary::-webkit-details-marker{display:none}
+.title-row{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.t{font-family:var(--display);font-weight:700;font-size:19px;line-height:1.15;margin:0}
+.add{flex:none;font:inherit;font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--teal);background:var(--surface);color:var(--teal-ink);cursor:pointer;white-space:nowrap}
+.add[aria-pressed="true"]{background:var(--teal);color:var(--on-teal)}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.tag{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--teal-soft);color:var(--teal-ink)}
+.tag.occ{background:var(--orange-soft);color:var(--orange)}
+.tempo{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:4px;border:1px solid var(--line);color:var(--body);background:var(--surface);white-space:nowrap}
+.bases{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:13px;line-height:1.4}
+.bases b{font-weight:600}
+.bases span{color:var(--body)}
+.dates{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:12px;color:var(--body);font-variant-numeric:tabular-nums;min-width:170px}
+.dates b{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.dates .k{font-weight:600;color:var(--fg);margin-left:6px}
+.dates .who{color:var(--muted);margin-left:6px}
+.dates .none{color:var(--orange);font-weight:500}
+@media (max-width:560px){details.song>summary{grid-template-columns:1fr}.dates{align-items:flex-start;min-width:0}}
+.body{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;padding:0 0 18px}
+@media (max-width:720px){.body{grid-template-columns:1fr}}
+.panel h3{font-family:var(--display);font-size:14px;font-weight:700;margin:0 0 6px;color:var(--teal-ink);letter-spacing:.02em}
+.panel h3+*{margin-top:0}
+.panel>*+h3{margin-top:14px}
+.lyr{white-space:pre-line;font-size:13.5px;color:var(--body);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;max-height:340px;overflow:auto}
+.lyr mark{background:var(--mark);color:var(--mark-ink);padding:0 1px}
+.keys{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+.keys .kn{display:inline-block;min-width:3.2em;font-weight:700;color:var(--fg)}
+.keys .ka{color:var(--muted);font-size:12px}
+.pending{font-size:13px;color:var(--orange);margin:0}
+.arrs{font-size:13px;color:var(--body);margin:0;padding-left:16px}
+.empty{padding:40px 0;color:var(--muted);text-align:center}
+footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
+/* Mi set */
+.setbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--bar);color:var(--on-bar);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.setbar-in{max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.setbar button{font:inherit;font-size:14px;font-weight:600;padding:8px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.5);background:transparent;color:var(--on-bar);cursor:pointer}
+.setbar .primary{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.setpanel{max-width:960px;margin:0 auto 10px;max-height:60vh;overflow:auto;background:var(--surface);color:var(--fg);border-radius:8px;padding:14px}
+.setpanel h2{font-family:var(--display);font-size:18px;margin:0 0 8px}
+.setlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.setlist li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:8px}
+.setlist .n{font-family:var(--display);font-weight:700;color:var(--teal-ink);width:1.4em}
+.setlist .st{font-weight:600;font-size:14px}
+.setlist .sm{font-size:12px;color:var(--muted)}
+.setlist .ctl{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.setlist .ctl button{font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--fg);cursor:pointer}
+.setlist select{font-size:12.5px;padding:5px 6px;margin-top:4px}
+.setactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.setactions button{font:inherit;font-size:13px;font-weight:600;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.setactions .primary{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.setactions input{font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
+#copyMsg{font-size:12.5px;color:var(--teal-ink)}
+#copyFallback{width:100%;min-height:120px;font:inherit;font-size:13px;margin-top:8px}
+@media (max-width:560px){
+  body{font-size:16px}
+  .lede{font-size:15px}
+  #q,select{font-size:16px}
+  .seg button{font-size:15px;padding:10px 14px}
+  .chip{font-size:14px;padding:6px 12px}
+  .meta-row,.linkbtn{font-size:14px}
+  .t{font-size:21px}
+  .add{font-size:14px;padding:7px 12px}
+  .tag,.tempo{font-size:13px;padding:3px 9px}
+  .bases{font-size:15px}
+  .dates{font-size:14px}
+  .dates b{font-size:12px}
+  .lyr{font-size:15.5px;max-height:none}
+  .keys{font-size:15px}
+  .arrs,.pending{font-size:14.5px}
+  .panel h3{font-size:16px}
+  footer{font-size:13.5px}
+  .setbar button{font-size:16px;padding:10px 16px}
+  #setcount{font-size:15px}
+  .setlist .st{font-size:16px}
+  .setlist .sm{font-size:13.5px}
+  .setlist select{font-size:16px}
+  .setlist .ctl button{font-size:14px;padding:7px 10px}
+  .setactions button,.setactions input{font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"></div>
+  <header>
+    <div>
+      <div class="eyebrow">Northwood Worship · Para quienes dirigen</div>
+      <h1>Cancionero</h1>
+      <p class="lede">Busca por título o por una frase de la letra, filtra por tempo y tema, y mira cuándo se cantó cada canción, en qué tono y quién la dirigió. Agrega canciones a tu set y cópialo para mandarlo al equipo.</p>
+    </div>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="196.19 383.84 1524.74 298.22" width="1525" height="298" fill-rule="evenodd" clip-rule="evenodd" role="img" aria-labelledby="t d">
+  <title id="t">Iglesia Northwood — primary lockup</title>
+  <desc id="d">Filled circle mark with two-line wordmark.</desc>
+  <g id="mark" ><path d="M 196.19,532 c -0.53,-75.3 60.43,-141.51 135.31,-147.88 c 2.33,-0.24 4.65,-0.3 6.97,-0.17 c 0.5,0.38 0.72,0.88 0.68,1.5 c -0.01,15.31 -0.12,30.61 -0.32,45.91 c -0.29,0.49 -0.73,0.73 -1.3,0.72 c -9.28,0.6 -18.57,0.98 -27.86,1.15 c -0.51,0.25 -0.78,0.67 -0.82,1.24 c -0.06,4.03 -0.08,8.06 -0.07,12.09 c -0.01,0.62 0.24,1.1 0.77,1.42 c 8.65,-0.24 17.3,-0.55 25.95,-0.94 c 0.96,0.15 2.63,-0.38 3.21,0.68 c -0.33,30.94 -0.53,61.87 -0.61,92.82 c 0.04,0.6 -0.19,1.08 -0.67,1.42 c -4.31,0.13 -8.61,0.34 -12.91,0.65 c -1.36,0.02 -2,-0.68 -1.93,-2.08 c -0.19,-10.01 -0.39,-20.01 -0.6,-30.01 c -0.3,-0.56 -0.77,-0.83 -1.41,-0.81 c -3.35,0.2 -6.69,0.36 -10.04,0.5 c -0.87,0.01 -1.37,0.44 -1.5,1.3 c -0.09,9.99 -0.17,19.98 -0.26,29.97 c 0.07,0.8 -0.15,1.49 -0.66,2.08 c -5.54,0.51 -11.08,1.04 -16.62,1.59 c -31.36,3.95 -60.61,10.16 -91,18.85 c -0.56,0.02 -0.97,-0.22 -1.21,-0.71 c -1.91,-10.38 -3.19,-20.34 -3.1,-31.29 Z M 353.96,387 c 0.03,-1.19 -0.39,-3.28 1.49,-3.16 c 19.04,1.11 37.2,5.75 54.47,13.91 c 63.24,30.89 95.7,95.38 82.94,164.71 c -0.2,1.34 -0.97,1.82 -2.31,1.42 c -29.82,-8.87 -58.67,-14.61 -89.45,-18.67 c -5.42,-0.37 -10.79,-0.94 -16.14,-1.71 c -1.37,-2.26 -0.86,-26.56 -0.89,-31.02 c 0.07,-0.86 -0.22,-1.56 -0.85,-2.1 c -3.59,-0.26 -7.18,-0.47 -10.78,-0.6 c -0.62,-0.02 -1.07,0.25 -1.36,0.79 c -0.1,10.5 -0.31,21 -0.63,31.49 c -0.55,0.51 -1.21,0.72 -1.97,0.61 c -4,-0.36 -8.01,-0.54 -12.03,-0.52 c -0.6,0.02 -1.05,-0.23 -1.36,-0.74 c -0.11,-31.18 -0.31,-62.36 -0.6,-93.55 c 0.42,-1.12 2.11,-0.7 3,-0.83 c 8.67,0.38 17.34,0.7 26,0.98 c 0.6,-0.28 0.91,-0.75 0.94,-1.41 c 0.04,-4.05 0.01,-8.11 -0.1,-12.15 c -0.1,-0.6 -0.42,-1.02 -0.98,-1.24 c -8.97,-0.13 -17.92,-0.49 -26.87,-1.1 c -0.89,0.09 -1.61,-0.18 -2.18,-0.83 c -0.19,-14.76 -0.3,-29.52 -0.34,-44.28 Z M 322.83,561 c -0.02,-1.28 -0.22,-3.13 1.66,-2.98 c 4.31,-0.13 8.62,-0.11 12.92,0.04 c 0.48,0.34 0.7,0.81 0.66,1.41 c -0.05,40.35 -0.4,80.71 -1.04,121.05 c -0.05,0.96 -0.55,1.45 -1.52,1.46 c -3.63,-0.14 -7.23,-0.54 -10.8,-1.22 c -0.46,-0.29 -0.69,-0.71 -0.68,-1.26 c -0.63,-39.5 -1.26,-78.98 -1.2,-118.5 Z M 354.99,561 c 0.03,-1.19 -0.38,-3.21 1.47,-3.1 c 4.31,-0.01 8.61,0.08 12.91,0.26 c 0.75,0.58 1.07,1.35 0.95,2.31 c -0.41,39.7 -0.13,79.35 -1.3,119.03 c -0.03,0.54 -0.29,0.94 -0.76,1.19 c -3.26,0.4 -6.52,0.81 -9.77,1.25 c -1.37,0.36 -2.18,-0.12 -2.43,-1.44 c -0.14,-39.83 -0.5,-79.67 -1.07,-119.5 Z M 201.68,572.08 c 31.62,-6.67 63.59,-10.34 95.82,-12.92 c 3.01,-0.15 6.02,-0.23 9.03,-0.25 c 0.63,-0.06 1.16,0.14 1.58,0.6 c -0.07,27.99 -0.21,55.98 -0.41,83.99 c -0.15,10.99 -0.38,21.97 -0.7,32.94 c -0.41,0.44 -0.89,0.56 -1.46,0.36 c -3.85,-1.09 -7.65,-2.3 -11.42,-3.63 c -1.05,-0.52 -1.59,-1.38 -1.63,-2.58 c -0.5,-30.68 -0.5,-61.47 -1.41,-92.12 c 0.05,-0.61 -0.16,-1.12 -0.62,-1.51 c -2.31,-0.11 -4.63,-0.05 -6.94,0.19 c -1.1,-0.01 -1.82,0.48 -2.17,1.49 c -0.24,28.6 -0.63,57.29 -1.33,85.88 c -0.23,0.77 0.31,1.72 -0.69,2.04 c -36.83,-17.53 -65.48,-52.22 -77.02,-91.26 c -0.27,-1.06 -0.48,-2.13 -0.63,-3.22 Z M 384.83,560.99 c -0.12,-0.79 0.13,-1.43 0.74,-1.91 c 12.8,-0.11 28.86,2.1 41.93,2.98 c 19.86,2.5 42.77,5.63 62.11,9.87 c 0.39,0.09 0.65,0.31 0.8,0.67 c -11.31,40.53 -38.61,74.09 -76.07,93.23 c -0.9,0.05 -1.33,-0.39 -1.3,-1.31 c -0.44,-28.62 -0.85,-57.25 -1.23,-85.87 c -0.78,-2.11 -7.42,-1.8 -9.21,-1.6 c -0.44,0.37 -0.64,0.85 -0.59,1.43 c -0.67,30.67 -1.07,61.34 -1.22,92.01 c -0.02,0.52 -0.16,1 -0.42,1.44 c -4.39,2.04 -8.96,3.61 -13.69,4.69 c -0.67,-0.51 -0.95,-1.21 -0.84,-2.1 c -0.51,-37.84 -0.85,-75.68 -1.01,-113.53 Z"/></g>
+  <g id="wordmark" ><path d="M 592.6,469 c 0.14,-12.87 3.07,-23.26 10.26,-33.87 c 5.61,-10.03 26.05,-22.85 36.65,-23.36 c 25.07,-4.49 49.96,-1.08 67.6,18.39 c 1.11,1.17 1.07,2.29 -0.13,3.36 c -7.42,6.6 -14.93,13.09 -22.52,19.47 c -0.65,0.15 -1.23,0.02 -1.74,-0.39 c -4.36,-4.72 -9.58,-8.13 -15.65,-10.22 c -3.2,-0.69 -11.36,-2.14 -13.8,0.18 c -1.86,-0.5 -3.67,-0.33 -5.42,0.5 c -28.91,11.53 -18.07,63.9 20.86,52.34 c 2.34,-0.28 3.36,-1.58 3.08,-3.9 c -0.01,-8.02 -0.01,-16.03 0.01,-24.05 c 0,-0.61 0.26,-1.07 0.78,-1.37 c 10.6,-0.19 21.2,-0.17 31.8,0.04 c 0.18,0.17 0.36,0.33 0.54,0.5 c 0.28,15.6 0.31,31.21 0.11,46.82 c -0.39,0.95 -1.04,1.67 -1.96,2.15 c -18.74,10.57 -40.24,15.01 -61.57,11.42 c -29.04,-5.2 -49.11,-28.06 -48.9,-58.01 Z M 912.3,515.89 c 3.27,-8.43 7.34,-16.37 10.61,-24.73 c 0.45,-1 1.04,-1.89 1.79,-2.66 c 3.04,1.4 6.09,2.84 9.16,4.34 c 10.37,3.9 31.46,9.77 41.18,2.64 c 3.91,-5.74 -4.31,-7.79 -7.66,-9.21 c -26.41,-4.82 -55.37,-9.16 -53.35,-42.78 c 5.85,-32.72 43.5,-36.38 70.27,-32.07 c 3.72,0.56 24.28,5.36 24.72,9.05 c -0.68,1.86 -1.23,3.76 -1.64,5.7 c -3.82,6.75 -5.6,14.29 -9.5,21.09 c -0.59,0.18 -1.19,0.16 -1.77,-0.07 c -7.32,-3.57 -43.34,-15.45 -44,-0.66 c 0.64,7.25 24.72,8.36 30.32,10.68 c 25.64,7.12 35.63,17.58 29.99,44.99 c -13.66,28.59 -47.95,28.39 -75,23.76 c -3.84,-0.79 -24.38,-6.39 -25.12,-10.07 Z M 543.95,522 c -0.03,-36.15 0.01,-72.29 0.13,-108.43 c 0.58,-0.8 1.37,-1.16 2.39,-1.07 c 11.69,-0.07 23.37,0.01 35.05,0.24 c 0.53,0.18 0.89,0.53 1.07,1.05 c 0.1,35.91 0.14,71.81 0.11,107.71 c -0.11,1.14 0.38,3.95 -1.34,4.14 c -11.93,0.12 -23.87,0.16 -35.82,0.11 c -2.03,0.2 -1.49,-2.51 -1.59,-3.75 Z M 717.79,522 c -0.05,-36.17 0.01,-72.33 0.18,-108.49 c 0.63,-0.79 1.46,-1.13 2.5,-1.02 c 11.02,0.02 22.04,0.02 33.06,0 c 2.12,-0.14 3.09,0.86 2.89,2.99 c -0.09,26.51 -0.01,53.01 0.23,79.51 c 0.51,0.51 1.14,0.73 1.88,0.67 c 15.99,-0.09 31.98,0 47.95,0.26 c 0.65,0.72 0.9,1.58 0.77,2.56 c 0.03,8.68 -0.01,17.36 -0.12,26.04 c -0.2,0.87 -0.76,1.29 -1.67,1.25 c -28.64,-0.01 -57.28,-0.01 -85.92,-0.01 c -2.12,0.26 -1.69,-2.45 -1.75,-3.76 Z M 813.87,522 c 0.02,-35.5 0.02,-71.01 0,-106.51 c -0.12,-2.51 1.09,-3.51 3.63,-3 c 28.68,0.02 57.35,0.02 86.03,0.01 c 1.59,-0.25 2.49,0.4 2.72,1.94 c 0.05,8.7 0.01,17.39 -0.1,26.08 c -0.06,0.57 -0.35,0.98 -0.84,1.24 c -16.94,0.14 -33.88,0.19 -50.83,0.13 c -1.41,-0.29 -2.24,0.25 -2.5,1.6 c -0.01,3.01 -0.02,6.02 -0.02,9.03 c 0.01,0.99 0.51,1.57 1.49,1.74 c 14.67,0.07 29.33,0.08 44,0.03 c 2.01,-0.29 1.96,1.83 1.95,3.21 c 0.07,8.01 -0.02,16.01 -0.3,23.99 c -0.39,0.49 -0.91,0.72 -1.55,0.69 c -14.94,-0.07 -29.88,-0.02 -44.81,0.13 c -0.45,0.27 -0.69,0.67 -0.71,1.2 c 0.07,3.09 -0.51,9.99 0.36,12.61 c 0.36,0.31 0.78,0.47 1.26,0.47 c 17.29,0.06 34.58,0.07 51.87,0.04 c 1,-0.11 1.81,0.2 2.43,0.94 c 0.16,8.3 0.22,16.62 0.18,24.94 c -0.15,1.12 0.3,2.48 -0.89,3.13 c -30.56,0.13 -61.12,0.16 -91.68,0.09 c -2.03,0.16 -1.63,-2.45 -1.69,-3.73 Z M 1021.69,522 c -0.06,-36.18 0.01,-72.34 0.23,-108.51 c 0.66,-0.76 1.52,-1.09 2.55,-0.99 c 11.71,-0.09 23.4,0.01 35.09,0.3 c 1.38,0.52 0.86,2.6 1,3.71 c 0.08,36.07 -0.01,72.13 -0.28,108.19 c -0.18,0.48 -0.52,0.81 -1.01,0.98 c -11.9,0.08 -23.81,0.11 -35.72,0.07 c -2.1,0.21 -1.84,-2.38 -1.86,-3.75 Z M 1063.06,524.96 c 15.88,-37.41 32.03,-74.68 48.73,-111.7 c 1.14,-0.69 2.38,-0.94 3.71,-0.76 c 10.67,0.01 21.34,0.01 32.01,0 c 0.97,0.01 1.86,0.26 2.69,0.76 c 16.11,36.61 32.25,73.3 48.23,110.03 c 0.83,1.93 0.19,2.75 -1.92,2.47 c -12.18,0.06 -24.36,0 -36.54,-0.17 c -0.72,-0.22 -1.23,-0.68 -1.52,-1.37 c -1.9,-5.94 -4.12,-11.77 -6.63,-17.49 c -1.01,-0.61 -2.11,-0.83 -3.31,-0.66 c -12.92,-0.07 -25.82,0.02 -38.71,0.26 c -0.59,0.53 -1,1.18 -1.22,1.94 c -2,5.69 -4.04,10.96 -6.5,16.54 c -0.38,0.56 -0.91,0.86 -1.6,0.89 c -11.98,0.06 -23.97,0.08 -35.95,0.06 c -0.68,0.05 -1.17,-0.21 -1.47,-0.8 Z M 1120.76,477.05 c 0.14,0.4 0.42,0.66 0.82,0.8 c 5.64,0.14 11.29,0.18 16.93,0.13 c 0.8,0.09 1.5,-0.09 2.13,-0.53 c -3.05,-8.16 -6.21,-16.27 -9.49,-24.33 c -0.77,-0.26 -1.3,0.01 -1.59,0.81 c -3.06,7.66 -6,15.37 -8.8,23.12 Z M 665.73,598 c -1.07,-53.55 64.59,-75.39 104.68,-46.83 c 28.82,21.4 31.14,64.06 5.4,88.95 c -21.14,18.53 -45.31,20.11 -71.53,13.07 c -23.93,-10.49 -38.19,-28.24 -38.55,-55.19 Z M 1329.77,598 c -0.64,-18.57 8.63,-36.19 23.39,-47.16 c 48.6,-31.51 116.59,0.73 102.47,62.59 c -1.73,7.33 -4.51,12.04 -8.52,18.36 c -34.06,45.26 -119.16,27.09 -117.34,-33.79 Z M 1463.08,598 c -1.24,-74.84 121.03,-81.3 127.82,-4.5 c 1.2,27.42 -12.07,48.32 -37.14,58.81 c -4.7,2.78 -14.58,3.64 -20.25,4.66 c -36.72,3.01 -70.58,-20.23 -70.43,-58.97 Z M 543.95,545 c 0.11,-1.26 -0.47,-3.99 1.58,-3.83 c 5.59,0.26 26.63,-0.64 30.43,0.54 c 13.6,16.04 27.11,32.17 40.54,48.39 c 1.31,1.65 1.74,-0.55 1.6,-1.58 c -0.1,-15.58 -0.01,-31.16 0.25,-46.72 c 0.6,-0.96 2.22,-0.52 3.14,-0.66 c 11.22,-0.09 22.43,0.02 33.62,0.32 c 0.62,0.9 0.86,1.91 0.72,3.04 c -0.01,35.67 -0.01,71.34 -0.01,107.01 c 0.16,2.32 -0.95,3.26 -3.32,2.8 c -5.69,-0.27 -24.77,0.48 -28.9,-0.43 c -13.31,-15.71 -26.57,-31.47 -39.77,-47.3 c -1.44,-1.6 -2.17,-1.3 -2.19,0.88 c 0.01,14.99 0.01,29.98 0.01,44.97 c 0.22,1.9 -1.83,1.88 -3.14,1.89 c -11.33,0.08 -22.63,-0.03 -33.93,-0.32 c -0.55,-0.73 -0.76,-1.56 -0.63,-2.49 c 0.01,-35.5 0.01,-71.01 0,-106.51 Z M 803.63,651 c 0.01,-35.5 0.01,-71 -0.01,-106.5 c 0.01,-1.37 -0.1,-3.55 1.9,-3.35 c 17.33,0 34.65,0 51.98,0 c 13.91,0.08 24.38,2.48 36.26,9.6 c 22.6,18 22.04,53.43 -3.45,68.13 c -0.49,0.4 -0.7,0.91 -0.63,1.54 c 7,10.74 14.17,21.38 21.51,31.94 c 1.8,1.96 -1.57,2.03 -2.69,1.95 c -12.35,0.06 -24.68,-0.02 -37.02,-0.24 c -2.27,-1.21 -16.04,-23.4 -18.97,-27.16 c -0.53,-0.59 -1.19,-0.88 -2,-0.86 c -1.41,0.25 -7.5,-0.67 -8.08,0.75 c -0.08,8.24 -0.1,16.48 -0.07,24.72 c 0.12,1.01 -0.18,1.85 -0.88,2.54 c -12,0.24 -24.02,0.32 -36.05,0.23 c -1.96,0.04 -1.83,-1.91 -1.8,-3.29 Z M 910.22,568 c 0,-8.16 0.01,-16.32 0.01,-24.48 c -0.21,-1.2 0.24,-1.97 1.35,-2.29 c 33.96,-0.09 67.92,-0.1 101.88,-0.04 c 0.51,-0.01 0.93,0.18 1.25,0.58 c 0.31,8.9 0.42,17.81 0.32,26.74 c 0.28,1.95 -0.55,2.88 -2.51,2.78 c -9.65,-0.01 -19.31,-0.01 -28.97,0 c -0.86,-0.02 -1.39,0.38 -1.58,1.22 c -0.1,26.65 -0.14,53.31 -0.1,79.97 c 0.2,2.02 -2.03,1.81 -3.37,1.83 c -10.67,-0.02 -21.33,-0.02 -32,0 c -1.35,-0.01 -3.55,0.18 -3.36,-1.83 c -0.01,-26 -0.01,-51.99 0.01,-77.98 c -0.05,-1.25 0.29,-3.5 -1.69,-3.23 c -9.66,0.02 -19.32,0.02 -28.99,0.01 c -2.4,0.07 -2.34,-1.37 -2.25,-3.28 Z M 1020.93,544 c 0.04,-1.17 -0.07,-2.91 1.61,-2.81 c 11.32,-0.03 22.64,-0.05 33.96,-0.05 c 2.06,-0.44 3.12,0.36 3.2,2.39 c -0.09,12.31 0.02,24.6 0.31,36.88 c 0.39,0.45 0.88,0.65 1.47,0.61 c 10.35,-0.02 20.69,-0.02 31.03,-0.02 c 0.94,-0.05 1.44,-0.55 1.49,-1.49 c -0.08,-12.59 0.03,-25.16 0.31,-37.73 c 0.32,-0.39 0.73,-0.59 1.24,-0.58 c 11.31,-0.04 22.63,-0.06 33.95,-0.06 c 1.15,0.07 3.17,-0.23 3.2,1.47 c 0.09,36.62 0.11,73.23 0.09,109.85 c 0.2,1.97 -1.96,1.85 -3.29,1.86 c -11.01,-0.03 -22.02,-0.03 -33.02,-0.01 c -1.47,0.22 -2.29,-0.39 -2.46,-1.81 c 0.05,-12.96 0,-25.91 -0.17,-38.86 c -0.32,-0.46 -0.77,-0.67 -1.33,-0.64 c -10.35,0 -20.69,0 -31.04,-0.02 c -1.01,-0.02 -1.59,0.47 -1.75,1.46 c -0.02,12.35 -0.02,24.71 -0.02,37.07 c 0.18,2.27 -0.89,3.21 -3.21,2.81 c -11.01,-0.02 -22.01,-0.03 -33.02,-0.02 c -1.99,0.12 -2.84,-0.81 -2.55,-2.79 c 0.01,-35.83 0.01,-71.67 0,-107.51 Z M 1600.92,544 c -0.35,-2.08 0.5,-3.03 2.57,-2.85 c 25.88,1.02 53.49,-2.7 78.72,3.45 c 5.05,2.27 10,4.08 14.68,7.21 c 32.2,21.3 31.93,70.9 -0.08,92.26 c -10.88,6.49 -22.65,9.89 -35.31,10.19 c -19,0.03 -38,0.05 -57,0.05 c -2.28,0.07 -3.93,0.04 -3.58,-2.8 c 0.01,-35.83 0.01,-71.67 0,-107.51 Z M 1140.25,542.28 c 6.05,-1.17 28.47,-0.22 36.26,-0.55 c 0.94,-0.02 1.84,0.16 2.7,0.52 c 3.32,10.9 6.76,21.77 10.32,32.61 c 1.93,8.82 5.67,18.21 7.96,26.99 c 0.58,1.36 1.32,1.47 2.22,0.33 c 1.37,-2.74 3.51,-9.87 4.09,-13 c 3.58,-9.02 5.78,-18.69 9.33,-27.68 c 1.97,-6.27 3.95,-12.51 5.93,-18.73 c 0.69,-0.62 1.49,-0.96 2.42,-1.03 c 6.22,0.01 28.43,-1.33 32.82,0.43 c 1.2,3.7 2.51,7.37 3.92,11.02 c 4.82,17.08 9.88,34.08 15.19,50.99 c 0.42,0.69 0.91,0.77 1.47,0.24 c 6.52,-20.76 13.15,-41.48 19.87,-62.17 c 3.85,-1.74 27.86,-0.5 33.78,-0.51 c 0.85,-0.06 1.54,0.22 2.07,0.83 c -0.7,1.82 -1.09,3.7 -1.18,5.63 c -1.11,2.26 -2.04,4.6 -2.79,7.04 c -10.57,32.85 -20.7,65.53 -31.61,98.24 c -0.36,0.5 -0.85,0.78 -1.47,0.85 c -12.36,0.06 -24.71,0.09 -37.07,0.07 c -0.99,0.07 -1.82,-0.24 -2.52,-0.91 c -5.68,-18.07 -11.53,-36.02 -16.39,-54.25 c -0.37,-1.96 -2.29,-4 -3.06,-0.83 c -0.2,3.08 -1.98,5.86 -2.81,8.86 c -4.41,14 -8.83,27.99 -13.26,41.98 c -0.43,1.71 -1.12,3.29 -2.05,4.75 c -5.55,2.03 -30.36,0.4 -37.9,0.41 c -0.95,0.01 -1.86,-0.2 -2.71,-0.64 c -2.13,-6.19 -4.21,-12.4 -6.24,-18.61 c -0.8,-4.39 -4.43,-12.86 -5.27,-17.66 c -7.97,-25.09 -16.48,-50.03 -24.02,-75.22 Z M 704.79,598 c -0.65,39.99 57.89,35.61 48.89,-8.06 c -7.38,-30.69 -50.11,-24.12 -48.89,8.06 Z M 1368.75,598 c -0.85,42.07 62.74,33.98 47.71,-12.28 c -11.4,-26.64 -48.84,-17.32 -47.71,12.28 Z M 1502.08,598 c 1.15,44.59 63.93,30.95 47.39,-12.98 c -11.77,-25.91 -48.45,-16.18 -47.39,12.98 Z M 842.34,593.99 c -0.42,2.5 0.63,3.52 3.15,3.05 c 11.78,0.34 26.82,0.94 25.28,-15.39 c -1.54,-8.67 -9.5,-11 -17.27,-10.5 c -3.55,-0.1 -7.08,0 -10.6,0.31 c -0.43,0.62 -0.61,1.31 -0.55,2.08 c 0.01,6.82 0,13.63 -0.01,20.45 Z M 1639.79,574 c -0.05,16.49 0.02,32.97 0.21,49.45 c 0.34,0.51 0.83,0.76 1.45,0.75 c 6.36,0.1 12.71,0.01 19.05,-0.28 c 18.91,-3.07 24.25,-19.92 19.7,-36.81 c -7.16,-17.56 -23.56,-15.89 -39.42,-15.7 c -0.83,0.65 -1.16,1.51 -0.99,2.59 Z"/></g>
+</svg>
+
+  </header>
+
+  <div class="filters">
+    <div class="row">
+      <input id="q" type="search" placeholder="Busca un título o una frase de la letra…" aria-label="Buscar por título o letra">
+      <select id="sort" aria-label="Ordenar">
+        <option value="az">Orden: A–Z</option>
+        <option value="old">Menos cantadas últimamente</option>
+        <option value="new">Cantadas más recientemente</option>
+      </select>
+    </div>
+    <div class="row">
+      <div class="seg" role="group" aria-label="Tempo" id="tempo">
+        <button type="button" data-v="" aria-pressed="true">Todos</button>
+        <button type="button" data-v="Rápido" aria-pressed="false">Rápido</button>
+        <button type="button" data-v="Mediano" aria-pressed="false">Mediano</button>
+        <button type="button" data-v="Lento" aria-pressed="false">Lento</button>
+      </div>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Temas (se combinan)"></div>
+    <div class="meta-row"><span id="count"></span><button id="clear" class="linkbtn" type="button" hidden>Quitar filtros</button></div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <footer>Datos de Planning Center, actualizados automáticamente cada lunes. Última actualización: __UPDATED__. "Últimos domingos" cuenta solo el servicio dominical: fecha, tono y quién dirigió. "Tonos por voz" muestra solo los tonos que tienen etiqueta en Planning Center. El tempo viene de la etiqueta Speed de cada arreglo; donde no la hay, se estimó por BPM y se marca con "(est.)". Al elegir varios temas, solo aparecen las canciones que tienen todos.</footer>
+</div>
+
+<div class="setbar" id="setbar">
+  <div class="setpanel" id="setpanel" hidden>
+    <h2>Mi set</h2>
+    <ol class="setlist" id="setlist"></ol>
+    <div class="setactions">
+      <input id="setdate" type="text" placeholder="Fecha o servicio (opcional)" aria-label="Fecha o servicio">
+      <button type="button" class="primary" id="copySet">Copiar para WhatsApp</button>
+      <button type="button" id="clearSet">Vaciar set</button>
+      <span id="copyMsg" role="status"></span>
+    </div>
+    <textarea id="copyFallback" hidden readonly aria-label="Texto del set para copiar"></textarea>
+  </div>
+  <div class="setbar-in">
+    <span id="setcount">Tu set está vacío</span>
+    <button type="button" class="primary" id="toggleSet" aria-expanded="false">Ver mi set</button>
+  </div>
+</div>
+
+<script>
+const DATA = __DATA__;
+const MES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const fmt = d => { const [y,m,dd] = d.split("-"); return `${+dd} ${MES[+m-1]} ${y}`; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm = s => String(s).toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu,"");
+DATA.forEach((s,i) => { s.i=i; s._hay = norm(s.t + " " + s.lyr); s._last = s.last.length ? s.last[0][0] : "0000"; });
+const byId = Object.fromEntries(DATA.map(s=>[s.id,s]));
+
+const store = { get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+const state = { q:"", tempo:"", themes:new Set(), sort: store.get("nw-sort","az") };
+let set = store.get("nw-set",[]).filter(x=>byId[x.id]);
+
+const chips = document.getElementById("chips");
+const ALLTAGS = [...new Set(DATA.flatMap(s=>s.tags))].sort((a,b)=>a.localeCompare(b,"es"));
+ALLTAGS.forEach(k=>{
+  const n = DATA.filter(s=>s.tags.includes(k)).length;
+  const b = document.createElement("button"); b.type="button"; b.className="chip"; b.dataset.k=k;
+  b.textContent = `${k} · ${n}`; b.setAttribute("aria-pressed","false");
+  b.addEventListener("click",()=>{ state.themes.has(k)?state.themes.delete(k):state.themes.add(k); render(); });
+  chips.append(b);
+});
+document.querySelectorAll("#tempo button").forEach(b=>b.addEventListener("click",()=>{state.tempo=b.dataset.v;render();}));
+const q = document.getElementById("q"); q.addEventListener("input",()=>{state.q=q.value;render();});
+const sortSel = document.getElementById("sort"); sortSel.value = state.sort;
+sortSel.addEventListener("change",()=>{state.sort=sortSel.value; store.set("nw-sort",state.sort); render();});
+document.getElementById("clear").addEventListener("click",()=>{state.q="";q.value="";state.tempo="";state.themes.clear();render();});
+
+function highlight(text, term){
+  const safe = esc(text);
+  if(!term) return safe;
+  return safe.split("\n").map(l => norm(l).includes(term) ? `<mark>${l}</mark>` : l).join("\n");
+}
+const inSet = id => set.some(x=>x.id===id);
+function card(s, term){
+  const last = s.last.length
+    ? s.last.map(([d,k,w])=>`<span>${fmt(d)}${k?`<span class="k">${esc(k)}</span>`:""}${w?`<span class="who">${esc(w)}</span>`:""}</span>`).join("")
+    : `<span class="none">Sin registro en domingos</span>`;
+  const tempo = s.tempo.length ? s.tempo.map(t=>`<span class="tempo">${t}${s.est?" (est.)":""}</span>`).join(" ") : `<span class="tempo">Tempo sin dato</span>`;
+  const keys = s.keys.length
+    ? `<ul class="keys">${s.keys.map(k=>`<li><span class="kn">${esc(k.k)}</span>${esc(k.l)}${s.multiArr?` <span class="ka">· ${esc(k.a)}</span>`:""}</li>`).join("")}</ul>`
+    : `<p class="pending">Tonos por voz pendientes de etiquetar en Planning Center.</p>`;
+  const arrs = s.arrs.filter(a=>a.n).map(a=>`<li>${esc(a.n)}${a.bpm?` · ${esc(a.bpm)} BPM`:""}</li>`).join("");
+  const open = term && s._hay.includes(term) && !norm(s.t).includes(term) ? " open" : "";
+  const on = inSet(s.id);
+  return `<details class="song"${open}><summary>
+    <div><div class="title-row"><p class="t">${esc(s.t)}</p><button type="button" class="add" data-id="${s.id}" aria-pressed="${on}">${on?"En el set ✓":"+ Al set"}</button></div>
+      <div class="tags">${tempo}${s.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>
+      <ul class="bases">${s.b.map(([r,c])=>`<li><b>${esc(r)}</b> — <span>${esc(c)}</span></li>`).join("")}</ul></div>
+    <div class="dates"><b>Últimos domingos</b>${last}</div>
+  </summary>
+  <div class="body">
+    <div class="panel"><h3>Letra</h3><div class="lyr">${s.lyr?highlight(s.lyr,term):"No hay letra en Planning Center."}</div></div>
+    <div class="panel"><h3>Tonos por voz</h3>${keys}${arrs?`<h3>Arreglos</h3><ul class="arrs">${arrs}</ul>`:""}</div>
+  </div></details>`;
+}
+function render(){
+  const term = norm(state.q.trim());
+  document.querySelectorAll("#tempo button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.v===state.tempo)));
+  chips.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed", String(state.themes.has(c.dataset.k))));
+  let rows = DATA.filter(s=>{
+    if(state.tempo && !s.tempo.includes(state.tempo)) return false;
+    for(const t of state.themes) if(!s.tags.includes(t)) return false;
+    return !term || s._hay.includes(term);
+  });
+  if(state.sort==="az") rows.sort((a,b)=>a.t.localeCompare(b.t,"es"));
+  if(state.sort==="new") rows.sort((a,b)=>b._last.localeCompare(a._last));
+  if(state.sort==="old") rows.sort((a,b)=>a._last.localeCompare(b._last));
+  document.getElementById("count").textContent = `${rows.length} de ${DATA.length} canciones`;
+  document.getElementById("clear").hidden = !(state.q||state.tempo||state.themes.size);
+  document.getElementById("list").innerHTML = rows.length ? rows.map(s=>card(s,term)).join("") : `<div class="empty">Ninguna canción cumple todos los filtros. Quita un tema o cambia el tempo.</div>`;
+}
+document.getElementById("list").addEventListener("click", e=>{
+  const b = e.target.closest(".add"); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const id=b.dataset.id;
+  if(inSet(id)) set=set.filter(x=>x.id!==id); else set.push({id, key:""});
+  saveSet(); const on=inSet(id); b.setAttribute("aria-pressed",String(on)); b.textContent = on?"En el set ✓":"+ Al set";
+});
+
+/* Mi set */
+const panel=document.getElementById("setpanel"), toggle=document.getElementById("toggleSet");
+function saveSet(){ store.set("nw-set",set); renderSet(); }
+function keyOptions(s){
+  const opts=[]; const seen=new Set();
+  s.keys.forEach(k=>{ const v=k.k+" ("+k.l+")"; if(!seen.has(v)){seen.add(v);opts.push(v);} });
+  s.allKeys.forEach(k=>{ if(![...seen].some(v=>v.startsWith(k+" "))&&!seen.has(k)){seen.add(k);opts.push(k);} });
+  return opts;
+}
+function renderSet(){
+  document.getElementById("setcount").textContent = set.length ? `${set.length} ${set.length===1?"canción":"canciones"} en tu set` : "Tu set está vacío";
+  const ul=document.getElementById("setlist");
+  if(!set.length){ ul.innerHTML=`<li style="display:block;border:0;color:var(--muted);font-size:13px">Toca "+ Al set" en cualquier canción para empezar.</li>`; return; }
+  ul.innerHTML = set.map((x,i)=>{ const s=byId[x.id]; const opts=keyOptions(s);
+    return `<li data-i="${i}"><span class="n">${i+1}</span>
+      <div><div class="st">${esc(s.t)}</div><div class="sm">${s.tempo.join(" / ")||"Tempo sin dato"}${s.last.length?` · Última vez: ${fmt(s.last[0][0])}${s.last[0][1]?" en "+esc(s.last[0][1]):""}`:""}</div>
+        <select data-i="${i}" aria-label="Tono para ${esc(s.t)}"><option value="">Tono: por definir</option>${opts.map(o=>`<option ${o===x.key?"selected":""}>${esc(o)}</option>`).join("")}</select></div>
+      <div class="ctl"><button type="button" data-act="up" data-i="${i}" aria-label="Subir">↑</button><button type="button" data-act="down" data-i="${i}" aria-label="Bajar">↓</button><button type="button" data-act="rm" data-i="${i}" aria-label="Quitar">Quitar</button></div></li>`; }).join("");
+}
+document.getElementById("setlist").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-act]"); if(!b) return; const i=+b.dataset.i;
+  if(b.dataset.act==="up"&&i>0) [set[i-1],set[i]]=[set[i],set[i-1]];
+  if(b.dataset.act==="down"&&i<set.length-1) [set[i+1],set[i]]=[set[i],set[i+1]];
+  if(b.dataset.act==="rm") set.splice(i,1);
+  saveSet(); render();
+});
+document.getElementById("setlist").addEventListener("change",e=>{ const s=e.target.closest("select"); if(!s) return; set[+s.dataset.i].key=s.value; store.set("nw-set",set); });
+toggle.addEventListener("click",()=>{ const open=panel.hidden; panel.hidden=!open; toggle.setAttribute("aria-expanded",String(open)); toggle.textContent=open?"Cerrar":"Ver mi set"; });
+document.getElementById("clearSet").addEventListener("click",()=>{ set=[]; saveSet(); render(); });
+document.getElementById("copySet").addEventListener("click",()=>{
+  if(!set.length) { document.getElementById("copyMsg").textContent="Agrega canciones primero."; return; }
+  const when=document.getElementById("setdate").value.trim();
+  const txt = `*Set${when?" – "+when:""}*\n` + set.map((x,i)=>{ const s=byId[x.id]; return `${i+1}. ${s.t}${x.key?" – "+x.key:""}${s.tempo.length?" ("+s.tempo.join("/")+")":""}`; }).join("\n");
+  const msg=document.getElementById("copyMsg"), fb=document.getElementById("copyFallback");
+  const fallback=()=>{ fb.hidden=false; fb.value=txt; fb.focus(); fb.select(); msg.textContent="Selecciona el texto y cópialo."; };
+  try{ navigator.clipboard.writeText(txt).then(()=>{ msg.textContent="Copiado. Pégalo en WhatsApp."; fb.hidden=true; }, fallback); }catch(err){ fallback(); }
+});
+render(); renderSet();
+</script>
+
+</body>
+</html>

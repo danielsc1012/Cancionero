@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cancionero Northwood</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -104,9 +109,36 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
 .setactions input{font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
 #copyMsg{font-size:12.5px;color:var(--teal-ink)}
 #copyFallback{width:100%;min-height:120px;font:inherit;font-size:13px;margin-top:8px}
+@media (max-width:560px){
+  body{font-size:16px}
+  .lede{font-size:15px}
+  #q,select{font-size:16px}
+  .seg button{font-size:15px;padding:10px 14px}
+  .chip{font-size:14px;padding:6px 12px}
+  .meta-row,.linkbtn{font-size:14px}
+  .t{font-size:21px}
+  .add{font-size:14px;padding:7px 12px}
+  .tag,.tempo{font-size:13px;padding:3px 9px}
+  .bases{font-size:15px}
+  .dates{font-size:14px}
+  .dates b{font-size:12px}
+  .lyr{font-size:15.5px;max-height:none}
+  .keys{font-size:15px}
+  .arrs,.pending{font-size:14.5px}
+  .panel h3{font-size:16px}
+  footer{font-size:13.5px}
+  .setbar button{font-size:16px;padding:10px 16px}
+  #setcount{font-size:15px}
+  .setlist .st{font-size:16px}
+  .setlist .sm{font-size:13.5px}
+  .setlist select{font-size:16px}
+  .setlist .ctl button{font-size:14px;padding:7px 10px}
+  .setactions button,.setactions input{font-size:16px}
+}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <div class="top"></div>
   <header>
@@ -288,3 +320,6 @@ document.getElementById("copySet").addEventListener("click",()=>{
 });
 render(); renderSet();
 </script>
+
+</body>
+</html>
