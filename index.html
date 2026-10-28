@@ -67,7 +67,7 @@ details.song>summary::-webkit-details-marker{display:none}
 .panel h3{font-family:var(--display);font-size:14px;font-weight:700;margin:0 0 6px;color:var(--teal-ink);letter-spacing:.02em}
 .lyr{white-space:pre-line;font-size:13.5px;color:var(--body);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;max-height:340px;overflow:auto}
 .lyr mark{background:#fdefb0;color:#1c1e1e;padding:0 1px}
-.bases{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.bases{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:13px;line-height:1.4}
 .bases b{font-weight:600}
 .bases span{color:var(--body)}
 .arrs{font-size:13px;color:var(--body);margin:0;padding-left:16px}
@@ -83,7 +83,7 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
     <div>
       <div class="eyebrow">Northwood Worship · Para quienes dirigen</div>
       <h1>Cancionero</h1>
-      <p class="lede">Busca por título o por una frase de la letra, filtra por tempo y tema, y mira cuándo se cantó cada canción en el servicio dominical antes de armar tu set. Toca una canción para ver la letra y sus bases bíblicas.</p>
+      <p class="lede">Busca por título o por una frase de la letra, filtra por tempo y tema, y mira cuándo se cantó cada canción en el servicio dominical antes de armar tu set. Cada canción muestra sus bases bíblicas; tócala para ver la letra y los arreglos.</p>
     </div>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="196.19 383.84 1524.74 298.22" width="1525" height="298" fill-rule="evenodd" clip-rule="evenodd" role="img" aria-labelledby="t d">
   <title id="t">Iglesia Northwood — primary lockup</title>
@@ -161,13 +161,13 @@ function card(s, term){
   const open = term && s._hay.includes(term) && !norm(s.t).includes(term) ? " open" : "";
   return `<details class="song"${open}><summary>
     <div><p class="t">${esc(s.t)}</p>
-      <div class="tags">${tempo}${s.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}${s.occ?`<span class="tag occ">${esc(s.occ)} · ocasión</span>`:""}</div></div>
+      <div class="tags">${tempo}${s.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}${s.occ?`<span class="tag occ">${esc(s.occ)} · ocasión</span>`:""}</div>
+      <ul class="bases">${s.b.map(([r,c])=>`<li><b>${esc(r)}</b> — <span>${esc(c)}</span></li>`).join("")}</ul></div>
     <div class="dates"><b>Últimos domingos</b>${last}</div>
   </summary>
   <div class="body">
     <div class="panel"><h3>Letra</h3><div class="lyr">${s.lyr?highlight(s.lyr,term):"No hay letra en Planning Center."}</div></div>
-    <div class="panel"><h3>Bases bíblicas</h3><ul class="bases">${s.b.map(([r,c])=>`<li><b>${esc(r)}</b> — <span>${esc(c)}</span></li>`).join("")}</ul>
-      ${arrs?`<h3>Arreglos</h3><ul class="arrs">${arrs}</ul>`:""}</div>
+    <div class="panel">${arrs?`<h3>Arreglos</h3><ul class="arrs">${arrs}</ul>`:`<h3>Arreglos</h3><p class="arrs">Sin arreglos registrados.</p>`}</div>
   </div></details>`;
 }
 function render(){
