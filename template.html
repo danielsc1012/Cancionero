@@ -113,6 +113,9 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
 .setlist .ctl{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
 .setlist .ctl button{font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--fg);cursor:pointer}
 .setlist select{font-size:12.5px;padding:5px 6px;margin-top:4px}
+.setlist .snote{display:block;width:100%;box-sizing:border-box;margin-top:6px;font:inherit;font-size:13px;line-height:1.35;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--fg);resize:none;overflow:hidden;min-height:32px}
+.setlist .snote:focus{outline:2px solid var(--teal);outline-offset:1px}
+.setlist .snote::placeholder{color:var(--muted)}
 .setsum{display:flex;flex-direction:column;gap:6px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
 .setsum .tot{font-family:var(--display);font-size:20px;font-weight:700;color:var(--teal-ink)}
 .setsum .tot small{font-family:inherit;font-size:13px;font-weight:500;color:var(--muted)}
@@ -133,7 +136,7 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
   .legend{font-size:13.5px}
   body{font-size:16px}
   .lede{font-size:15px}
-  #q,select{font-size:16px}
+  #q,select,.setlist .snote{font-size:16px}
   .seg button{font-size:15px;padding:10px 14px}
   .chip{font-size:14px;padding:6px 12px}
   .meta-row,.linkbtn{font-size:14px}
@@ -167,7 +170,7 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
     <div>
       <div class="eyebrow">Northwood Worship · Para quienes dirigen</div>
       <h1>Cancionero</h1>
-      <p class="lede">Busca por título o por una frase de la letra, filtra por tempo y tema, y mira cuándo se cantó cada canción, en qué tono y quién la dirigió. Agrega canciones a tu set y cópialo para mandarlo al equipo.</p>
+      <p class="lede">Busca por título o por una frase de la letra, filtra por tempo y tema, y mira cuándo se cantó cada canción, en qué tono y quién la dirigió. Agrega canciones a tu set, ponle notas a cada una si hace falta y cópialo para mandarlo al equipo.</p>
     </div>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="196.19 383.84 1524.74 298.22" width="1525" height="298" fill-rule="evenodd" clip-rule="evenodd" role="img" aria-labelledby="t d">
   <title id="t">Iglesia Northwood — primary lockup</title>
@@ -376,9 +379,12 @@ function renderSet(){
   ul.innerHTML = set.map((x,i)=>{ const s=byId[x.id]; const opts=keyOptions(s);
     return `<li data-i="${i}"><span class="n">${i+1}</span>
       <div><div class="st">${esc(s.t)}</div><div class="sm">${songLen(s,x.key)?"⏱ "+mmss(songLen(s,x.key))+" · ":""}${s.tempo.join(" / ")||"Tempo sin dato"}${s.last.length?` · Última vez: ${fmt(s.last[0][0])}${s.last[0][1]?" en "+esc(s.last[0][1]):""}`:""}</div>
-        <select data-i="${i}" aria-label="Tono para ${esc(s.t)}"><option value="">Tono: por definir</option>${opts.map(o=>`<option ${o===x.key?"selected":""}>${esc(o)}</option>`).join("")}</select></div>
+        <select data-i="${i}" aria-label="Tono para ${esc(s.t)}"><option value="">Tono: por definir</option>${opts.map(o=>`<option ${o===x.key?"selected":""}>${esc(o)}</option>`).join("")}</select>
+        <textarea class="snote" data-i="${i}" rows="1" maxlength="300" placeholder="Nota (opcional)" aria-label="Nota para ${esc(s.t)}">${esc(x.note||"")}</textarea></div>
       <div class="ctl"><button type="button" data-act="up" data-i="${i}" aria-label="Subir">↑</button><button type="button" data-act="down" data-i="${i}" aria-label="Bajar">↓</button><button type="button" data-act="rm" data-i="${i}" aria-label="Quitar">Quitar</button></div></li>`; }).join("");
+  ul.querySelectorAll(".snote").forEach(growNote);
 }
+function growNote(t){ t.style.height="auto"; t.style.height=t.scrollHeight+"px"; }
 document.getElementById("setlist").addEventListener("click",e=>{
   const b=e.target.closest("button[data-act]"); if(!b) return; const i=+b.dataset.i;
   if(b.dataset.act==="up"&&i>0) [set[i-1],set[i]]=[set[i],set[i-1]];
@@ -386,13 +392,15 @@ document.getElementById("setlist").addEventListener("click",e=>{
   if(b.dataset.act==="rm") set.splice(i,1);
   saveSet(); render();
 });
+document.getElementById("setlist").addEventListener("input",e=>{ const t=e.target.closest(".snote"); if(!t) return; set[+t.dataset.i].note=t.value; store.set("nw-set",set); growNote(t); });
 document.getElementById("setlist").addEventListener("change",e=>{ const s=e.target.closest("select"); if(!s) return; set[+s.dataset.i].key=s.value; saveSet(); });
 toggle.addEventListener("click",()=>{ const open=panel.hidden; panel.hidden=!open; toggle.setAttribute("aria-expanded",String(open)); toggle.textContent=open?"Cerrar":"Ver mi set"; });
 document.getElementById("clearSet").addEventListener("click",()=>{ set=[]; saveSet(); render(); });
+const noteTxt = n => (n||"").split("\n").map(l=>l.trim().replace(/^_+|_+$/g,"").trim()).filter(Boolean).map(l=>`\n   _${l}_`).join("");
 document.getElementById("copySet").addEventListener("click",()=>{
   if(!set.length) { document.getElementById("copyMsg").textContent="Agrega canciones primero."; return; }
   const when=document.getElementById("setdate").value.trim();
-  const txt = `*Set${when?" – "+when:""}*\n` + set.map((x,i)=>{ const s=byId[x.id]; return `${i+1}. ${s.t}${x.key?" – "+x.key:""}${s.tempo.length?" ("+s.tempo.join("/")+")":""}${songLen(s,x.key)?" · "+mmss(songLen(s,x.key)):""}`; }).join("\n") + (()=>{ const t=set.reduce((a,x)=>a+songLen(byId[x.id],x.key),0); return t?`\nDuración aprox.: ${minTxt(t)}`:""; })();
+  const txt = `*Set${when?" – "+when:""}*\n` + set.map((x,i)=>{ const s=byId[x.id]; return `${i+1}. ${s.t}${x.key?" – "+x.key:""}${s.tempo.length?" ("+s.tempo.join("/")+")":""}${songLen(s,x.key)?" · "+mmss(songLen(s,x.key)):""}${noteTxt(x.note)}`; }).join("\n") + (()=>{ const t=set.reduce((a,x)=>a+songLen(byId[x.id],x.key),0); return t?`\nDuración aprox.: ${minTxt(t)}`:""; })();
   const msg=document.getElementById("copyMsg"), fb=document.getElementById("copyFallback");
   const fallback=()=>{ fb.hidden=false; fb.value=txt; fb.focus(); fb.select(); msg.textContent="Selecciona el texto y cópialo."; };
   try{ navigator.clipboard.writeText(txt).then(()=>{ msg.textContent="Copiado. Pégalo en WhatsApp."; fb.hidden=true; }, fallback); }catch(err){ fallback(); }
