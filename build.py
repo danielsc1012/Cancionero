@@ -139,6 +139,14 @@ def resolve_tempo(arrs):
     return [t for t in TEMPO_ORDER if t in tagged] + sorted(tagged - set(TEMPO_ORDER)), False, issues
 
 
+def fmt_bpm(v):
+    """110 → "110", 72.0 → "72", 72.5 → "72.5" (antes se comía el cero final: 110 → "11")."""
+    if not v:
+        return ""
+    f = float(v)
+    return str(int(f)) if f.is_integer() else str(f)
+
+
 def write_csv(name, header, rows):
     import csv
     with open(os.path.join(HERE, "reportes", name), "w", encoding="utf-8-sig", newline="") as f:
@@ -181,7 +189,7 @@ def load_songs():
                             v = SPEED_ES.get(nm, nm)
                             if v not in sp:
                                 sp.append(v)
-                arrs.append({"n": name, "bpm": str(at["bpm"]).rstrip("0").rstrip(".") if at.get("bpm") else "",
+                arrs.append({"n": name, "bpm": fmt_bpm(at.get("bpm")),
                              "len": int(at.get("length") or 0), "sp": sp})
                 for kref in ((ar.get("relationships") or {}).get("keys") or {}).get("data") or []:
                     k = inc.get(kref["id"])
@@ -195,7 +203,9 @@ def load_songs():
                     lyr = clean_lyrics(at.get("chord_chart") or at.get("lyrics") or "")
         tempo, est, issues = resolve_tempo(arrs)
         for msg in issues:
-            TEMPO_REVIEW.append([s["t"], msg, "; ".join(f"{a['n']}: {a['bpm'] or 'sin BPM'} BPM, {'/'.join(a['sp']) or 'sin etiqueta'}" for a in arrs)])
+            row = [s["t"], msg, "; ".join(f"{a['n']}: {a['bpm'] + ' BPM' if a['bpm'] else 'sin BPM'}, {'/'.join(a['sp']) or 'sin etiqueta'}" for a in arrs)]
+            if row not in TEMPO_REVIEW:
+                TEMPO_REVIEW.append(row)
         if not any(a["len"] for a in arrs):
             NO_LENGTH.append([s["t"], "; ".join(a["n"] for a in arrs) or "sin arreglos"])
         lt, grp = analyze(lyr, s["t"])
