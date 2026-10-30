@@ -128,6 +128,8 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
 .setactions .primary{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
 .setactions input{font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
 #copyMsg{font-size:12.5px;color:var(--teal-ink)}
+.sharedmsg{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px;padding:10px 12px;border-radius:8px;border:1px solid var(--teal);font-size:13px}
+.sharedmsg button{font:inherit;font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:5px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
 #copyFallback{width:100%;min-height:120px;font:inherit;font-size:13px;margin-top:8px}
 @media (max-width:560px){
   .lt,.ltk,.grp{font-size:13px}
@@ -170,7 +172,7 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
     <div>
       <div class="eyebrow">Northwood Worship · Para quienes dirigen</div>
       <h1>Cancionero</h1>
-      <p class="lede">Busca por título o por una frase de la letra, filtra por tempo y tema, y mira cuándo se cantó cada canción, en qué tono y quién la dirigió. Agrega canciones a tu set, ponle notas a cada una si hace falta y cópialo para mandarlo al equipo.</p>
+      <p class="lede">Busca por título o por una frase de la letra, filtra por tempo y tema, y mira cuándo se cantó cada canción, en qué tono y quién la dirigió. Agrega canciones a tu set, ponle notas a cada una si hace falta y cópialo para mandarlo al equipo, con un enlace que abre el set completo.</p>
     </div>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="196.19 383.84 1524.74 298.22" width="1525" height="298" fill-rule="evenodd" clip-rule="evenodd" role="img" aria-labelledby="t d">
   <title id="t">Iglesia Northwood — primary lockup</title>
@@ -220,6 +222,7 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
 <div class="setbar" id="setbar">
   <div class="setpanel" id="setpanel" hidden>
     <h2>Mi set</h2>
+    <div class="sharedmsg" id="sharedMsg" role="status" hidden></div>
     <div class="setsum" id="setsum" hidden></div>
     <ol class="setlist" id="setlist"></ol>
     <div class="setactions">
@@ -400,11 +403,42 @@ const noteTxt = n => (n||"").split("\n").map(l=>l.trim().replace(/^_+|_+$/g,"").
 document.getElementById("copySet").addEventListener("click",()=>{
   if(!set.length) { document.getElementById("copyMsg").textContent="Agrega canciones primero."; return; }
   const when=document.getElementById("setdate").value.trim();
-  const txt = `*Set${when?" – "+when:""}*\n` + set.map((x,i)=>{ const s=byId[x.id]; return `${i+1}. ${s.t}${x.key?" – "+x.key:""}${s.tempo.length?" ("+s.tempo.join("/")+")":""}${songLen(s,x.key)?" · "+mmss(songLen(s,x.key)):""}${noteTxt(x.note)}`; }).join("\n") + (()=>{ const t=set.reduce((a,x)=>a+songLen(byId[x.id],x.key),0); return t?`\nDuración aprox.: ${minTxt(t)}`:""; })();
+  const txt = `*Set${when?" – "+when:""}*\n` + set.map((x,i)=>{ const s=byId[x.id]; return `${i+1}. ${s.t}${x.key?" – "+x.key:""}${s.tempo.length?" ("+s.tempo.join("/")+")":""}${songLen(s,x.key)?" · "+mmss(songLen(s,x.key)):""}${noteTxt(x.note)}`; }).join("\n") + (()=>{ const t=set.reduce((a,x)=>a+songLen(byId[x.id],x.key),0); return t?`\nDuración aprox.: ${minTxt(t)}`:""; })() + `\n\nVer el set completo:\n${setLink()}`;
   const msg=document.getElementById("copyMsg"), fb=document.getElementById("copyFallback");
   const fallback=()=>{ fb.hidden=false; fb.value=txt; fb.focus(); fb.select(); msg.textContent="Selecciona el texto y cópialo."; };
-  try{ navigator.clipboard.writeText(txt).then(()=>{ msg.textContent="Copiado. Pégalo en WhatsApp."; fb.hidden=true; }, fallback); }catch(err){ fallback(); }
+  try{ navigator.clipboard.writeText(txt).then(()=>{ msg.textContent="Copiado, con el enlace al set. Pégalo en WhatsApp."; fb.hidden=true; }, fallback); }catch(err){ fallback(); }
 });
+/* Set compartido por enlace: #set=<base64url de {d, s:[[id,tono,nota],…]}> */
+const dateIn=document.getElementById("setdate");
+dateIn.value=store.get("nw-setdate","");
+dateIn.addEventListener("input",()=>store.set("nw-setdate",dateIn.value));
+const b64e = str => { const b=new TextEncoder().encode(str); let s=""; b.forEach(c=>s+=String.fromCharCode(c)); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); };
+const b64d = str => { const s=atob(str.replace(/-/g,"+").replace(/_/g,"/")); return new TextDecoder().decode(Uint8Array.from(s,c=>c.charCodeAt(0))); };
+function setLink(){
+  const p={s:set.map(x=>{ const a=[x.id,x.key||""]; if(x.note&&x.note.trim()) a.push(x.note.trim()); return a; })};
+  const d=dateIn.value.trim(); if(d) p.d=d;
+  return location.origin+location.pathname+"#set="+b64e(JSON.stringify(p));
+}
+const sharedMsg=document.getElementById("sharedMsg");
+function loadShared(){
+  const m=location.hash.match(/^#set=([A-Za-z0-9_-]+)/); if(!m) return;
+  let p; try{ p=JSON.parse(b64d(m[1])); }catch(e){ p=null; }
+  try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){}
+  if(!p||!Array.isArray(p.s)){ sharedMsg.hidden=false; sharedMsg.textContent="No se pudo abrir el set compartido: el enlace está incompleto."; panel.hidden=false; toggle.setAttribute("aria-expanded","true"); toggle.textContent="Cerrar"; return; }
+  const incoming=p.s.filter(a=>Array.isArray(a)&&byId[String(a[0])]).map(a=>({id:String(a[0]), key:String(a[1]||""), note:String(a[2]||"")}));
+  const lost=p.s.length-incoming.length;
+  const prev={set:set.slice(), d:dateIn.value};
+  const same=JSON.stringify(prev.set.map(x=>[x.id,x.key||"",x.note||""]))===JSON.stringify(incoming.map(x=>[x.id,x.key,x.note]));
+  set=incoming; dateIn.value=typeof p.d==="string"?p.d:""; store.set("nw-setdate",dateIn.value); saveSet(); render();
+  panel.hidden=false; toggle.setAttribute("aria-expanded","true"); toggle.textContent="Cerrar";
+  sharedMsg.hidden=false;
+  sharedMsg.innerHTML=`<span>Abriste un set compartido${p.d?" ("+esc(p.d)+")":""}.${lost?` ${lost} ${lost===1?"canción ya no está":"canciones ya no están"} en el cancionero.`:""}</span>`+(prev.set.length&&!same?`<button type="button" id="restoreSet">Volver a mi set anterior</button>`:"");
+  const r=document.getElementById("restoreSet");
+  if(r) r.addEventListener("click",()=>{ set=prev.set; dateIn.value=prev.d; store.set("nw-setdate",prev.d); saveSet(); render(); sharedMsg.hidden=true; });
+}
+window.addEventListener("hashchange",loadShared);
+document.getElementById("clearSet").addEventListener("click",()=>{ dateIn.value=""; store.set("nw-setdate",""); sharedMsg.hidden=true; });
+loadShared();
 render(); renderSet();
 </script>
 
