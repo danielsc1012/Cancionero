@@ -106,6 +106,47 @@ def parse_bases(notes):
     return bases
 
 
+# ---------- tempo ----------
+SPEED_ES = {"Fast": "Rápido", "Medium": "Mediano", "Slow": "Lento"}
+TEMPO_ORDER = ["Lento", "Mediano", "Rápido"]
+TEMPO_REVIEW, NO_LENGTH = [], []
+
+
+def band(bpm):
+    """Rangos de Northwood Worship: Lento ≤84, Mediano 85–119, Rápido ≥120."""
+    return "Lento" if bpm <= 84 else "Mediano" if bpm < 120 else "Rápido"
+
+
+def resolve_tempo(arrs):
+    """Devuelve (tempos, estimado, avisos). Las etiquetas de Planning Center mandan;
+    si los arreglos tienen el mismo BPM y sus etiquetas se contradicen, se usa el BPM."""
+    issues = []
+    tagged = {t for a in arrs for t in a["sp"]}
+    bpms = {float(a["bpm"]) for a in arrs if a["bpm"]}
+    for a in arrs:
+        if len(a["sp"]) > 1:
+            issues.append(f"El arreglo '{a['n']}' tiene varias etiquetas de velocidad ({'/'.join(a['sp'])})")
+        if a["bpm"] and a["sp"] and band(float(a["bpm"])) not in a["sp"]:
+            issues.append(f"El arreglo '{a['n']}' dice {'/'.join(a['sp'])} pero {a['bpm']} BPM cae en {band(float(a['bpm']))}")
+    if not tagged:
+        if bpms:
+            return [band(sorted(bpms)[0])], True, issues
+        return [], False, issues
+    if len(tagged) > 1 and len(bpms) == 1:
+        b = band(bpms.pop())
+        issues.append(f"Etiquetas contradictorias con el mismo BPM; se muestra {b} por BPM")
+        return [b], True, issues
+    return [t for t in TEMPO_ORDER if t in tagged] + sorted(tagged - set(TEMPO_ORDER)), False, issues
+
+
+def write_csv(name, header, rows):
+    import csv
+    with open(os.path.join(HERE, "reportes", name), "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(header)
+        w.writerows(sorted(rows))
+
+
 # ---------- canciones ----------
 def load_songs():
     songs = []
@@ -125,13 +166,23 @@ def load_songs():
                 grp = (((t.get("relationships") or {}).get("tag_group") or {}).get("data") or {}).get("id")
                 if grp == THEME_GROUP:
                     tags.append(t["attributes"]["name"])
-        arrs, keys, all_keys, speeds, lyr = [], [], [], set(), ""
+        arrs, keys, all_keys, lyr = [], [], [], ""
         for page in paginate(f"/songs/{sid}/arrangements?per_page=25&include=keys"):
             inc = {x["id"]: x["attributes"] for x in page.get("included", []) if x["type"] == "Key"}
             for ar in page["data"]:
                 at = ar["attributes"]
                 name = at.get("name") or "Arreglo"
-                arrs.append({"n": name, "bpm": str(at["bpm"]).rstrip("0").rstrip(".") if at.get("bpm") else ""})
+                sp = []
+                for page_t in paginate(f"/songs/{sid}/arrangements/{ar['id']}/tags?per_page=50"):
+                    for t in page_t["data"]:
+                        grp = (((t.get("relationships") or {}).get("tag_group") or {}).get("data") or {}).get("id")
+                        nm = t["attributes"]["name"]
+                        if grp == SPEED_GROUP or nm in ("Fast", "Medium", "Slow"):
+                            v = SPEED_ES.get(nm, nm)
+                            if v not in sp:
+                                sp.append(v)
+                arrs.append({"n": name, "bpm": str(at["bpm"]).rstrip("0").rstrip(".") if at.get("bpm") else "",
+                             "len": int(at.get("length") or 0), "sp": sp})
                 for kref in ((ar.get("relationships") or {}).get("keys") or {}).get("data") or []:
                     k = inc.get(kref["id"])
                     if not k or not k.get("starting_key"):
@@ -140,26 +191,18 @@ def load_songs():
                         all_keys.append(k["starting_key"])
                     if (k.get("name") or "").strip():
                         keys.append({"k": k["starting_key"], "l": k["name"].strip(), "a": name})
-                for page_t in paginate(f"/songs/{sid}/arrangements/{ar['id']}/tags?per_page=50"):
-                    for t in page_t["data"]:
-                        grp = (((t.get("relationships") or {}).get("tag_group") or {}).get("data") or {}).get("id")
-                        nm = t["attributes"]["name"]
-                        if grp == SPEED_GROUP or nm in ("Fast", "Medium", "Slow"):
-                            speeds.add({"Fast": "Rápido", "Medium": "Mediano", "Slow": "Lento"}.get(nm, nm))
                 if not lyr:
                     lyr = clean_lyrics(at.get("chord_chart") or at.get("lyrics") or "")
-        est = False
-        if not speeds:
-            bpms = [float(a["bpm"]) for a in arrs if a["bpm"]]
-            if bpms:
-                v = bpms[0]
-                speeds.add("Lento" if v <= 85 else "Mediano" if v < 120 else "Rápido")
-                est = True
+        tempo, est, issues = resolve_tempo(arrs)
+        for msg in issues:
+            TEMPO_REVIEW.append([s["t"], msg, "; ".join(f"{a['n']}: {a['bpm'] or 'sin BPM'} BPM, {'/'.join(a['sp']) or 'sin etiqueta'}" for a in arrs)])
+        if not any(a["len"] for a in arrs):
+            NO_LENGTH.append([s["t"], "; ".join(a["n"] for a in arrs) or "sin arreglos"])
         lt, grp = analyze(lyr, s["t"])
         out.append({
             "lt": lt, "grp": grp,
             "id": sid, "t": s["t"], "tags": tags, "b": parse_bases(s["notes"]),
-            "tempo": sorted(speeds), "est": est, "arrs": arrs, "keys": keys, "allKeys": all_keys,
+            "tempo": tempo, "est": est, "arrs": arrs, "keys": keys, "allKeys": all_keys,
             "multiArr": len({k["a"] for k in keys}) > 1, "lyr": lyr,
         })
         if i % 25 == 0:
@@ -250,6 +293,10 @@ def main():
     html = tpl.replace("__UPDATED__", updated).replace("__DATA__", json.dumps(songs, ensure_ascii=False).replace("</", "<\\/"))
     with open(os.path.join(HERE, "index.html"), "w", encoding="utf-8") as f:
         f.write(html)
+    os.makedirs(os.path.join(HERE, "reportes"), exist_ok=True)
+    write_csv("tempos-a-revisar.csv", ["Canción", "Qué revisar", "Arreglos (BPM y etiqueta)"], TEMPO_REVIEW)
+    write_csv("canciones-sin-duracion.csv", ["Canción", "Arreglos"], NO_LENGTH)
+    print(f"Tempos a revisar: {len(TEMPO_REVIEW)} · Canciones sin duración: {len(NO_LENGTH)}")
     print(f"index.html generado: {len(songs)} canciones, {_calls} consultas a Planning Center.")
 
 

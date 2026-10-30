@@ -113,6 +113,13 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
 .setlist .ctl{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
 .setlist .ctl button{font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--fg);cursor:pointer}
 .setlist select{font-size:12.5px;padding:5px 6px;margin-top:4px}
+.setsum{display:flex;flex-direction:column;gap:6px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.setsum .tot{font-family:var(--display);font-size:20px;font-weight:700;color:var(--teal-ink)}
+.setsum .tot small{font-family:inherit;font-size:13px;font-weight:500;color:var(--muted)}
+.setsum .ltbar{width:100%;height:10px}
+.setsum .lt{margin:0}
+.setsum .note{font-size:12px;color:var(--muted)}
+.dur{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--line);color:var(--fg);white-space:nowrap}
 .setactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
 .setactions button{font:inherit;font-size:13px;font-weight:600;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
 .setactions .primary{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
@@ -143,6 +150,7 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
   footer{font-size:13.5px}
   .setbar button{font-size:16px;padding:10px 16px}
   #setcount{font-size:15px}
+  .setsum .note,.dur{font-size:13px}
   .setlist .st{font-size:16px}
   .setlist .sm{font-size:13.5px}
   .setlist select{font-size:16px}
@@ -203,12 +211,13 @@ footer{font-size:12px;color:var(--muted);margin-top:22px;max-width:75ch}
 
   <div class="list" id="list"></div>
 
-  <footer>Datos de Planning Center, actualizados automáticamente cada lunes. Última actualización: __UPDATED__. "Últimos domingos" cuenta solo el servicio dominical: fecha, tono y quién dirigió. "Tonos por voz" muestra solo los tonos que tienen etiqueta en Planning Center. El tempo viene de la etiqueta Speed de cada arreglo; donde no la hay, se estimó por BPM y se marca con "(est.)". Al elegir varios temas, solo aparecen las canciones que tienen todos.</footer>
+  <footer>Datos de Planning Center, actualizados automáticamente cada lunes. Última actualización: __UPDATED__. "Últimos domingos" cuenta solo el servicio dominical: fecha, tono y quién dirigió. "Tonos por voz" muestra solo los tonos que tienen etiqueta en Planning Center. El tempo viene de la etiqueta Speed de cada arreglo; donde no la hay, o cuando sus etiquetas se contradicen con el mismo BPM, se usa el BPM (Lento hasta 84, Mediano 85–119, Rápido 120 o más) y se marca con "(est.)". La duración viene del campo Length de cada arreglo; en el set se usa la del arreglo del tono elegido. La barra del set pondera cada canción por su duración. Al elegir varios temas, solo aparecen las canciones que tienen todos.</footer>
 </div>
 
 <div class="setbar" id="setbar">
   <div class="setpanel" id="setpanel" hidden>
     <h2>Mi set</h2>
+    <div class="setsum" id="setsum" hidden></div>
     <ol class="setlist" id="setlist"></ol>
     <div class="setactions">
       <input id="setdate" type="text" placeholder="Fecha o servicio (opcional)" aria-label="Fecha o servicio">
@@ -250,6 +259,20 @@ document.querySelectorAll("#tempo button").forEach(b=>b.addEventListener("click"
 document.querySelectorAll("#ltype button").forEach(b=>b.addEventListener("click",()=>{state.lt=b.dataset.v;render();}));
 document.getElementById("grpBtn").addEventListener("click",()=>{state.grp=!state.grp;render();});
 const LTN=["Objetiva","Subjetiva","Reflexiva"];
+const mmss = sec => `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,"0")}`;
+const minTxt = sec => { const m=Math.round(sec/60); return m<60 ? `${m} min` : `${Math.floor(m/60)} h ${m%60} min`; };
+function songLen(s, keyTxt){
+  const withLen = s.arrs.filter(a=>a.len>0);
+  if(!withLen.length) return 0;
+  if(keyTxt){
+    const k = s.keys.find(k=>keyTxt===k.k+" ("+k.l+")");
+    const a = k && withLen.find(a=>a.n===k.a);
+    if(a) return a.len;
+  }
+  return withLen[0].len;
+}
+const durLabel = s => { const l=s.arrs.filter(a=>a.len>0).map(a=>a.len); if(!l.length) return ""; const lo=Math.min(...l), hi=Math.max(...l);
+  return Math.abs(hi-lo)<30 ? mmss(lo) : `${mmss(lo)}–${mmss(hi)}`; };
 const dom = s => s.lt ? s.lt.indexOf(Math.max(...s.lt)) : -1;
 function ltBar(s){
   if(!s.lt) return `<div class="lt">Tipo de letra: sin datos suficientes${s.grp?` <span class="grp">Grupal</span>`:""}</div>`;
@@ -276,12 +299,12 @@ function card(s, term){
   const keys = s.keys.length
     ? `<ul class="keys">${s.keys.map(k=>`<li><span class="kn">${esc(k.k)}</span>${esc(k.l)}${s.multiArr?` <span class="ka">· ${esc(k.a)}</span>`:""}</li>`).join("")}</ul>`
     : `<p class="pending">Tonos por voz pendientes de etiquetar en Planning Center.</p>`;
-  const arrs = s.arrs.filter(a=>a.n).map(a=>`<li>${esc(a.n)}${a.bpm?` · ${esc(a.bpm)} BPM`:""}</li>`).join("");
+  const arrs = s.arrs.filter(a=>a.n).map(a=>`<li>${esc(a.n)}${a.bpm?` · ${esc(a.bpm)} BPM`:""}${a.len?` · ${mmss(a.len)}`:""}${a.sp&&a.sp.length?` · ${a.sp.join("/")}`:""}</li>`).join("");
   const open = term && s._hay.includes(term) && !norm(s.t).includes(term) ? " open" : "";
   const on = inSet(s.id);
   return `<details class="song"${open}><summary>
     <div><div class="title-row"><p class="t">${esc(s.t)}</p><button type="button" class="add" data-id="${s.id}" aria-pressed="${on}">${on?"En el set ✓":"+ Al set"}</button></div>
-      <div class="tags">${tempo}${s.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>
+      <div class="tags">${durLabel(s)?`<span class="dur" title="Duración según Planning Center">⏱ ${durLabel(s)}</span>`:""}${tempo}${s.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>
       ${ltBar(s)}
       <ul class="bases">${s.b.map(([r,c])=>`<li><b>${esc(r)}</b> — <span>${esc(c)}</span></li>`).join("")}</ul></div>
     <div class="dates"><b>Últimos domingos</b>${last}</div>
@@ -328,13 +351,31 @@ function keyOptions(s){
   s.allKeys.forEach(k=>{ if(![...seen].some(v=>v.startsWith(k+" "))&&!seen.has(k)){seen.add(k);opts.push(k);} });
   return opts;
 }
+function renderSum(){
+  const box=document.getElementById("setsum");
+  if(!set.length){ box.hidden=true; return; }
+  let total=0, missing=0, w=[0,0,0], wsum=0;
+  set.forEach(x=>{ const s=byId[x.id]; const l=songLen(s,x.key); if(l) total+=l; else missing++;
+    if(s.lt){ const wt=l||240; s.lt.forEach((v,i)=>w[i]+=v*wt); wsum+=wt; } });
+  const pct = wsum ? w.map(v=>v/wsum) : null;
+  let o=0,su=0,r=0;
+  if(pct){ [o,su,r]=pct.map(v=>Math.round(v)); const d=100-o-su-r; const mi=[o,su,r].indexOf(Math.max(o,su,r)); if(mi===0)o+=d; else if(mi===1)su+=d; else r+=d; }
+  const tot = total ? `≈ ${minTxt(total)}` : "Duración sin datos";
+  box.innerHTML = `<div class="tot">${tot} <small>· ${set.length} ${set.length===1?"canción":"canciones"}</small></div>
+    ${pct?`<div class="lt" title="Objetiva ${o}% · Subjetiva ${su}% · Reflexiva ${r}%"><span class="ltbar" role="img" aria-label="Set: ${o}% objetivo, ${su}% subjetivo, ${r}% reflexivo"><i class="c-o" style="width:${o}%"></i><i class="c-s" style="width:${su}%"></i><i class="c-r" style="width:${r}%"></i></span></div>
+    <div class="legend"><span class="ltk"><i class="c-o"></i>Objetivo ${o}%</span><span class="ltk"><i class="c-s"></i>Subjetivo ${su}%</span><span class="ltk"><i class="c-r"></i>Reflexivo ${r}%</span></div>`:""}
+    ${missing?`<div class="note">${missing} ${missing===1?"canción no tiene":"canciones no tienen"} duración en Planning Center; el total no ${missing===1?"la":"las"} incluye.</div>`:""}`;
+  box.hidden=false;
+}
 function renderSet(){
-  document.getElementById("setcount").textContent = set.length ? `${set.length} ${set.length===1?"canción":"canciones"} en tu set` : "Tu set está vacío";
+  { const t=set.reduce((acc,x)=>acc+songLen(byId[x.id],x.key),0);
+  document.getElementById("setcount").textContent = set.length ? `${set.length} ${set.length===1?"canción":"canciones"} en tu set${t?" · ≈ "+minTxt(t):""}` : "Tu set está vacío"; }
   const ul=document.getElementById("setlist");
+  renderSum();
   if(!set.length){ ul.innerHTML=`<li style="display:block;border:0;color:var(--muted);font-size:13px">Toca "+ Al set" en cualquier canción para empezar.</li>`; return; }
   ul.innerHTML = set.map((x,i)=>{ const s=byId[x.id]; const opts=keyOptions(s);
     return `<li data-i="${i}"><span class="n">${i+1}</span>
-      <div><div class="st">${esc(s.t)}</div><div class="sm">${s.tempo.join(" / ")||"Tempo sin dato"}${s.last.length?` · Última vez: ${fmt(s.last[0][0])}${s.last[0][1]?" en "+esc(s.last[0][1]):""}`:""}</div>
+      <div><div class="st">${esc(s.t)}</div><div class="sm">${songLen(s,x.key)?"⏱ "+mmss(songLen(s,x.key))+" · ":""}${s.tempo.join(" / ")||"Tempo sin dato"}${s.last.length?` · Última vez: ${fmt(s.last[0][0])}${s.last[0][1]?" en "+esc(s.last[0][1]):""}`:""}</div>
         <select data-i="${i}" aria-label="Tono para ${esc(s.t)}"><option value="">Tono: por definir</option>${opts.map(o=>`<option ${o===x.key?"selected":""}>${esc(o)}</option>`).join("")}</select></div>
       <div class="ctl"><button type="button" data-act="up" data-i="${i}" aria-label="Subir">↑</button><button type="button" data-act="down" data-i="${i}" aria-label="Bajar">↓</button><button type="button" data-act="rm" data-i="${i}" aria-label="Quitar">Quitar</button></div></li>`; }).join("");
 }
@@ -345,13 +386,13 @@ document.getElementById("setlist").addEventListener("click",e=>{
   if(b.dataset.act==="rm") set.splice(i,1);
   saveSet(); render();
 });
-document.getElementById("setlist").addEventListener("change",e=>{ const s=e.target.closest("select"); if(!s) return; set[+s.dataset.i].key=s.value; store.set("nw-set",set); });
+document.getElementById("setlist").addEventListener("change",e=>{ const s=e.target.closest("select"); if(!s) return; set[+s.dataset.i].key=s.value; saveSet(); });
 toggle.addEventListener("click",()=>{ const open=panel.hidden; panel.hidden=!open; toggle.setAttribute("aria-expanded",String(open)); toggle.textContent=open?"Cerrar":"Ver mi set"; });
 document.getElementById("clearSet").addEventListener("click",()=>{ set=[]; saveSet(); render(); });
 document.getElementById("copySet").addEventListener("click",()=>{
   if(!set.length) { document.getElementById("copyMsg").textContent="Agrega canciones primero."; return; }
   const when=document.getElementById("setdate").value.trim();
-  const txt = `*Set${when?" – "+when:""}*\n` + set.map((x,i)=>{ const s=byId[x.id]; return `${i+1}. ${s.t}${x.key?" – "+x.key:""}${s.tempo.length?" ("+s.tempo.join("/")+")":""}`; }).join("\n");
+  const txt = `*Set${when?" – "+when:""}*\n` + set.map((x,i)=>{ const s=byId[x.id]; return `${i+1}. ${s.t}${x.key?" – "+x.key:""}${s.tempo.length?" ("+s.tempo.join("/")+")":""}${songLen(s,x.key)?" · "+mmss(songLen(s,x.key)):""}`; }).join("\n") + (()=>{ const t=set.reduce((a,x)=>a+songLen(byId[x.id],x.key),0); return t?`\nDuración aprox.: ${minTxt(t)}`:""; })();
   const msg=document.getElementById("copyMsg"), fb=document.getElementById("copyFallback");
   const fallback=()=>{ fb.hidden=false; fb.value=txt; fb.focus(); fb.select(); msg.textContent="Selecciona el texto y cópialo."; };
   try{ navigator.clipboard.writeText(txt).then(()=>{ msg.textContent="Copiado. Pégalo en WhatsApp."; fb.hidden=true; }, fallback); }catch(err){ fallback(); }
